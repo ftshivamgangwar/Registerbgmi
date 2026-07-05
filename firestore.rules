@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerifiedUser() {
+      return isSignedIn();
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ftshivamgangwar@gmail.com';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+        && data.email == request.auth.token.email
+        && data.realName is string && data.realName.size() >= 1 && data.realName.size() <= 100
+        && data.bgmiId is string && data.bgmiId.size() >= 1 && data.bgmiId.size() <= 20
+        && data.bgmiName is string && data.bgmiName.size() >= 1 && data.bgmiName.size() <= 100
+        && data.upiId is string && data.upiId.size() >= 1 && data.upiId.size() <= 100
+        && data.instagramId is string && data.instagramId.size() >= 1 && data.instagramId.size() <= 100
+        && data.whatsappNumber is string && data.whatsappNumber.size() == 10;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      
+      // Allow list only for admin
+      allow list: if isAdmin();
+      
+      // Allow create only for the owner, and must match the valid schema and atomically reserve the BGMI ID
+      allow create: if isOwner(userId) && isValidUser(incoming()) && existsAfter(/databases/$(database)/documents/bgmi_ids/$(incoming().bgmiId));
+      
+      // The user profile is read-only after registration.
+      allow update, delete: if false;
+    }
+
+    match /bgmi_ids/{bgmiId} {
+      // Anyone signed up can verify if a BGMI ID exists
+      allow get: if isSignedIn();
+      
+      // Allow list only for admin
+      allow list: if isAdmin();
+      
+      // Allow create only when registering, tied to user doc creation
+      allow create: if isSignedIn() && incoming().uid == request.auth.uid && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));
+      
+      // Reading-only mapping
+      allow update, delete: if false;
+    }
+  }
+}

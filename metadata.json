@@ -1,0 +1,6 @@
+{
+  "name": "BGMI User Registration Portal",
+  "description": "A secure and professional BGMI User Registration portal with Google Authentication, unique ID verification, profile lockdown, and an advanced Admin Dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

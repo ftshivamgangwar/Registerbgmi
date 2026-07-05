@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Registered details of a BGMI user",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique user ID matching document key"
+        },
+        "email": {
+          "type": "string",
+          "description": "Google email of the user"
+        },
+        "realName": {
+          "type": "string",
+          "description": "Real Name of the player"
+        },
+        "bgmiId": {
+          "type": "string",
+          "description": "Numeric BGMI player ID"
+        },
+        "bgmiName": {
+          "type": "string",
+          "description": "BGMI in-game name"
+        },
+        "upiId": {
+          "type": "string",
+          "description": "UPI ID for transactions"
+        },
+        "instagramId": {
+          "type": "string",
+          "description": "Instagram username"
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "10-digit WhatsApp phone number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Registration timestamp"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "realName",
+        "bgmiId",
+        "bgmiName",
+        "upiId",
+        "instagramId",
+        "whatsappNumber",
+        "createdAt"
+      ]
+    },
+    "BgmiIdMap": {
+      "title": "BGMI ID Mapping",
+      "description": "Ensures uniqueness of BGMI player IDs",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The UID of the user who owns this BGMI ID"
+        }
+      },
+      "required": [
+        "uid"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of registered BGMI users"
+    },
+    "/bgmi_ids/{bgmiId}": {
+      "schema": "BgmiIdMap",
+      "description": "Collection mapping BGMI IDs to user UIDs to enforce uniqueness"
+    }
+  }
+}
