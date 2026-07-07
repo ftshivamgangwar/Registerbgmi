@@ -8,6 +8,7 @@ export interface UserProfile {
   instagramId: string;
   whatsappNumber: string;
   createdAt: any; // Firestore Timestamp or Date ISO string
+  blocked?: boolean;
 }
 
 export interface BgmiIdMap {

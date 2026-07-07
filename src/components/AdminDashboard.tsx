@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useFirebase } from './FirebaseProvider';
 import { db, handleFirestoreError } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { UserProfile, OperationType } from '../types';
 import { motion } from 'motion/react';
 import { 
@@ -13,8 +13,13 @@ import {
   Users, 
   RefreshCw,
   TrendingUp,
-  Instagram
+  Instagram,
+  Edit,
+  ShieldAlert,
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
+import { EditUserModal } from './EditUserModal';
 
 export const AdminDashboard: React.FC = () => {
   const { isAdmin } = useFirebase();
@@ -22,6 +27,11 @@ export const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Edit and Block feature states
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserProfile | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const fetchAllUsers = async () => {
     setLoading(true);
@@ -46,6 +56,27 @@ export const AdminDashboard: React.FC = () => {
       handleFirestoreError(err, OperationType.GET, path);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleUserBlockStatus = async (userToUpdate: UserProfile) => {
+    setActionLoadingId(userToUpdate.uid);
+    setError(null);
+    const isBlocking = !userToUpdate.blocked;
+    const docPath = `users/${userToUpdate.uid}`;
+    
+    try {
+      const docRef = doc(db, 'users', userToUpdate.uid);
+      await updateDoc(docRef, { blocked: isBlocking });
+      
+      // Update local state
+      setUsers(prev => prev.map(u => u.uid === userToUpdate.uid ? { ...u, blocked: isBlocking } : u));
+    } catch (err: any) {
+      console.error("Error toggling block status:", err);
+      setError(`Failed to ${isBlocking ? 'block' : 'unblock'} player. Please try again.`);
+      handleFirestoreError(err, OperationType.WRITE, docPath);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -90,7 +121,7 @@ export const AdminDashboard: React.FC = () => {
   // Export to CSV helper
   const exportToCSV = () => {
     if (filteredUsers.length === 0) return;
-    const headers = ['Real Name', 'Email', 'BGMI ID', 'BGMI Name', 'UPI ID', 'Instagram ID', 'WhatsApp Number', 'Registration Date'];
+    const headers = ['Real Name', 'Email', 'BGMI ID', 'BGMI Name', 'UPI ID', 'Instagram ID', 'WhatsApp Number', 'Registration Date', 'Status'];
     const rows = filteredUsers.map(user => [
       `"${user.realName.replace(/"/g, '""')}"`,
       `"${user.email.replace(/"/g, '""')}"`,
@@ -99,7 +130,8 @@ export const AdminDashboard: React.FC = () => {
       `"${user.upiId}"`,
       `"${user.instagramId}"`,
       `"${user.whatsappNumber}"`,
-      `"${getFormattedDate(user.createdAt)}"`
+      `"${getFormattedDate(user.createdAt)}"`,
+      `"${user.blocked ? 'Suspended' : 'Active'}"`
     ]);
     const csvContent = "data:text/csv;charset=utf-8," 
       + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -228,13 +260,15 @@ export const AdminDashboard: React.FC = () => {
                   <th className="py-4 px-6">UPI ID</th>
                   <th className="py-4 px-6">Social Contacts</th>
                   <th className="py-4 px-6">Reg Date</th>
+                  <th className="py-4 px-6">Status</th>
+                  <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {filteredUsers.map((user) => (
                   <tr 
                     key={user.uid}
-                    className="hover:bg-zinc-950/40 transition-colors text-sm text-zinc-300"
+                    className={`hover:bg-zinc-950/40 transition-colors text-sm text-zinc-300 ${user.blocked ? 'bg-red-950/10' : ''}`}
                   >
                     {/* IGN / ID */}
                     <td className="py-4 px-6">
@@ -293,6 +327,56 @@ export const AdminDashboard: React.FC = () => {
                     <td className="py-4 px-6 text-xs text-zinc-500 font-mono">
                       {getFormattedDate(user.createdAt)}
                     </td>
+
+                    {/* Status */}
+                    <td className="py-4 px-6">
+                      {user.blocked ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-wider font-mono">
+                          Suspended
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider font-mono">
+                          Active
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => {
+                            setSelectedUserForEdit(user);
+                            setIsEditModalOpen(true);
+                          }}
+                          className="p-2 bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-lg text-zinc-400 hover:text-amber-500 transition-all cursor-pointer inline-flex items-center justify-center active:scale-95"
+                          title="Edit Player Profile"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+
+                        {/* Block / Unblock Button */}
+                        <button
+                          onClick={() => toggleUserBlockStatus(user)}
+                          disabled={actionLoadingId === user.uid}
+                          className={`p-2 border rounded-lg transition-all cursor-pointer inline-flex items-center justify-center active:scale-95 ${
+                            user.blocked
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                              : 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
+                          }`}
+                          title={user.blocked ? "Unblock Player" : "Block/Suspend Player"}
+                        >
+                          {actionLoadingId === user.uid ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : user.blocked ? (
+                            <ShieldCheck className="w-4 h-4" />
+                          ) : (
+                            <ShieldAlert className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -300,6 +384,21 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Edit User Modal */}
+      {selectedUserForEdit && (
+        <EditUserModal
+          user={selectedUserForEdit}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedUserForEdit(null);
+          }}
+          onSuccess={() => {
+            fetchAllUsers();
+          }}
+        />
+      )}
 
     </div>
   );

@@ -52,8 +52,8 @@ service cloud.firestore {
       // Allow create only for the owner, and must match the valid schema and atomically reserve the BGMI ID
       allow create: if isOwner(userId) && isValidUser(incoming()) && existsAfter(/databases/$(database)/documents/bgmi_ids/$(incoming().bgmiId));
       
-      // The user profile is read-only after registration.
-      allow update, delete: if false;
+      // The user profile is read-only after registration, except for the admin.
+      allow update, delete: if isAdmin();
     }
 
     match /bgmi_ids/{bgmiId} {
@@ -64,10 +64,10 @@ service cloud.firestore {
       allow list: if isAdmin();
       
       // Allow create only when registering, tied to user doc creation
-      allow create: if isSignedIn() && incoming().uid == request.auth.uid && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow create: if (isSignedIn() && incoming().uid == request.auth.uid && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))) || isAdmin();
       
-      // Reading-only mapping
-      allow update, delete: if false;
+      // Reading-only mapping except for admin
+      allow update, delete: if isAdmin();
     }
   }
 }

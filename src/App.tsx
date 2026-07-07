@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { RegistrationForm } from './components/RegistrationForm';
 import { ProfileView } from './components/ProfileView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { BlockedView } from './components/BlockedView';
 import { Trophy, LogIn, Loader2, Gamepad2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -125,6 +126,9 @@ const MainAppContent: React.FC = () => {
             ) : !profile ? (
               /* If profile is incomplete, force them to complete registration first */
               <RegistrationForm key="registration-form" />
+            ) : profile.blocked && !isAdmin ? (
+              /* Display Blocked View if account is suspended */
+              <BlockedView key="blocked-view" />
             ) : currentTab === 'admin' && isAdmin ? (
               /* Admin Dashboard */
               <AdminDashboard key="admin-dashboard" />
