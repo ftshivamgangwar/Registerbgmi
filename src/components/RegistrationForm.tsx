@@ -95,7 +95,7 @@ export const RegistrationForm: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-2xl flex flex-col gap-6"
+      className="w-full max-w-2xl mx-auto flex flex-col gap-6"
     >
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-black uppercase tracking-tight italic text-white">

@@ -108,7 +108,7 @@ const MainAppContent: React.FC = () => {
       <div className="flex flex-col w-full">
         <Navbar currentTab={currentTab} onTabChange={setCurrentTab} />
 
-        <main className="w-full py-8 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <main className="w-full py-8 px-4 sm:px-6 lg:px-8">
           <AnimatePresence mode="wait">
             
             {/* Profile Loading State */}

@@ -66,7 +66,7 @@ _Portal powered by BGMI Champions_`;
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-8"
+      className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8"
     >
       {/* Left Column: Registered Card Details */}
       <div className="md:col-span-7 flex flex-col gap-6">
